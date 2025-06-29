@@ -1,54 +1,60 @@
 import tkinter as tk
-import time
 
-# Función para crear el reloj con botones
-def crear_reloj(ventana):
-    # Label del reloj
-    reloj = tk.Label(ventana, font=('Arial', 60), bg='blue', fg='white')
-    reloj.pack(anchor='center', pady=20)
+class RelojPomodoro(tk.Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.pack()
 
-    # Estado del reloj
-    estado = {'activo': False, 'after_id': None}
+        self.tiempo_restante = 0
+        self.timer_id = None
+        self.activo = False
 
-    # Función que actualiza la hora
-    def hora():
-        if estado['activo']:
-            tiempo_actual = time.strftime('%H:%M:%S')
-            reloj.config(text=tiempo_actual)
-            estado['after_id'] = ventana.after(1000, hora)
+        self.label = tk.Label(self, font=('Arial', 60), bg='blue', fg='white')
+        self.label.pack(pady=20)
+        self.label.config(text="00:00:00")
 
-    # Iniciar reloj
-    def iniciar():
-        if not estado['activo']:
-            estado['activo'] = True
-            hora()
+        # Frame para botones
+        botones_frame = tk.Frame(self)
+        botones_frame.pack()
 
-    # Pausar reloj
-    def pausar():
-        if estado['activo']:
-            estado['activo'] = False
-            if estado['after_id']:
-                ventana.after_cancel(estado['after_id'])
-                estado['after_id'] = None
+        btn_iniciar = tk.Button(botones_frame, text="Iniciar", width=10, command=self.iniciar)
+        btn_pausar = tk.Button(botones_frame, text="Pausar", width=10, command=self.pausar)
+        btn_reiniciar = tk.Button(botones_frame, text="Reiniciar", width=10, command=self.reiniciar)
 
-    # Resetear reloj
-    def resetear():
-        pausar()
-        reloj.config(text='00:00:00')
+        btn_iniciar.pack(side=tk.LEFT, padx=5)
+        btn_pausar.pack(side=tk.LEFT, padx=5)
+        btn_reiniciar.pack(side=tk.LEFT, padx=5)
 
-    # Crear botones
-    frame_botones = tk.Frame(ventana)
-    frame_botones.pack(pady=10)
+    def iniciar_cuenta_regresiva(self, segundos):
+        self.tiempo_restante = segundos
+        self.activo = True
+        self._actualizar()
 
-    btn_iniciar = tk.Button(frame_botones, text="Iniciar", font=('Arial', 12), width=10, command=iniciar)
-    btn_pausar = tk.Button(frame_botones, text="Pausar", font=('Arial', 12), width=10, command=pausar)
-    btn_reset = tk.Button(frame_botones, text="Resetear", font=('Arial', 12), width=10, command=resetear)
+    def _actualizar(self):
+        if self.activo and self.tiempo_restante > 0:
+            minutos = self.tiempo_restante // 60
+            segundos = self.tiempo_restante % 60
+            self.label.config(text=f"{minutos:02d}:{segundos:02d}")
+            self.tiempo_restante -= 1
+            self.timer_id = self.after(1000, self._actualizar)
+        elif self.tiempo_restante == 0:
+            self.label.config(text="¡Tiempo terminado!")
+            self.activo = False
+            self.timer_id = None
 
-    btn_iniciar.pack(side=tk.LEFT, padx=5)
-    btn_pausar.pack(side=tk.LEFT, padx=5)
-    btn_reset.pack(side=tk.LEFT, padx=5)
+    def iniciar(self):
+        if not self.activo and self.tiempo_restante > 0:
+            self.activo = True
+            self._actualizar()
 
-    # Mostrar reloj en cero al inicio
-    reloj.config(text='00:00:00')
+    def pausar(self):
+        if self.activo:
+            self.activo = False
+            if self.timer_id:
+                self.after_cancel(self.timer_id)
+                self.timer_id = None
 
-    return reloj
+    def reiniciar(self):
+        self.pausar()
+        self.tiempo_restante = 0
+        self.label.config(text="00:00:00")
